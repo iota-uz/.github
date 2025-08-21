@@ -82,7 +82,6 @@ permissions:
   issues: write
   id-token: write
   repository-projects: write
-  organization-projects: write
 
 jobs:
   implementation-plan:
