@@ -1,0 +1,122 @@
+name: Claude — Shared PR Review (inline)
+
+on:
+  workflow_call:
+    inputs:
+      base_branch:
+        description: "Base branch for comparison"
+        required: false
+        type: string
+        default: main
+      prompt:
+        description: "Optional extra guidance for the review"
+        required: false
+        type: string
+      model:
+        description: "Anthropic model"
+        required: false
+        type: string
+        default: claude-4-0-sonnet-20250219
+      mcp_config:
+        description: "Path or JSON for MCP config (merged with GitHub MCP)"
+        required: false
+        type: string
+        default: .github/claude/mcp.json
+      allowed_tools:
+        description: "Allowed tools list (pipe-separated)"
+        required: false
+        type: string
+        default: |
+          WebSearch
+          WebFetch
+          Bash(find:*)
+          Bash(grep:*)
+          Bash(ls:*)
+          Bash(cat:*)
+          Bash(head:*)
+          Bash(tail:*)
+          Bash(wc:*)
+          Bash(tree:*)
+          Bash(gh label:*)
+          Bash(gh issue:*)
+          Bash(gh project:*)
+          mcp__context7__resolve-library-id
+          mcp__context7__get-library-docs
+          mcp__godoc-mcp__get_doc
+          mcp__bloom__search_code
+      disallowed_tools:
+        description: "Disallowed tools list (pipe-separated)"
+        required: false
+        type: string
+        default: |
+          Edit
+          MultiEdit
+          NotebookEdit
+          Write
+      runner:
+        description: "GitHub runner to use"
+        required: false
+        type: string
+        default: blacksmith-8vcpu-ubuntu-2204
+      tech_stack:
+        description: "Technology stack (go, nodejs, python, etc)"
+        required: false
+        type: string
+        default: go
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      BLOOM_MCP_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  review:
+    name: Inline review
+    runs-on: ${{ inputs.runner }}
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node.js (if needed)
+        if: inputs.tech_stack == 'nodejs'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Setup pnpm (if needed)
+        if: inputs.tech_stack == 'nodejs'
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Claude inline PR review
+        uses: anthropics/claude-code-action@main
+        env:
+          DEFAULT_WORKFLOW_TOKEN: ${{ github.token }}
+          BLOOM_MCP_TOKEN: ${{ secrets.BLOOM_MCP_TOKEN }}
+        with:
+          mode: experimental-review
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: ${{ inputs.model }}
+          base_branch: ${{ inputs.base_branch }}
+          allowed_tools: ${{ inputs.allowed_tools }}
+          disallowed_tools: ${{ inputs.disallowed_tools }}
+          direct_prompt: |
+            ${{ inputs.prompt }}
+            
+            Review only the changed lines/hunks in this PR. Prefer **inline comments** tied
+            to exact lines, use GitHub's suggestion blocks for quick fixes, and avoid
+            generic summaries. Flag correctness, security, performance, and concurrency pitfalls.
+          mcp_config: ${{ inputs.mcp_config }}

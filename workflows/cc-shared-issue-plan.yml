@@ -1,0 +1,180 @@
+name: Claude — Shared Issue Implementation Plan
+
+on:
+  workflow_call:
+    inputs:
+      base_branch:
+        description: "Base branch for reference"
+        required: false
+        type: string
+        default: main
+      prompt:
+        description: "Optional extra guidance for the plan"
+        required: false
+        type: string
+      model:
+        description: "Anthropic model"
+        required: false
+        type: string
+        default: claude-4-0-sonnet-20250219
+      mcp_config:
+        description: "Path or JSON for MCP config (merged with GitHub MCP)"
+        required: false
+        type: string
+        default: .github/claude/mcp.json
+      allowed_tools:
+        description: "Allowed tools list (pipe-separated)"
+        required: false
+        type: string
+        default: |
+          WebSearch
+          WebFetch
+          Bash(find:*)
+          Bash(grep:*)
+          Bash(ls:*)
+          Bash(cat:*)
+          Bash(head:*)
+          Bash(tail:*)
+          Bash(wc:*)
+          Bash(tree:*)
+          Bash(gh label:*)
+          Bash(gh issue:*)
+          Bash(gh project:*)
+          mcp__context7__resolve-library-id
+          mcp__context7__get-library-docs
+          mcp__godoc-mcp__get_doc
+          mcp__bloom__search_code
+      disallowed_tools:
+        description: "Disallowed tools list (pipe-separated)"
+        required: false
+        type: string
+        default: |
+          Edit
+          MultiEdit
+          NotebookEdit
+          Write
+      runner:
+        description: "GitHub runner to use"
+        required: false
+        type: string
+        default: blacksmith-8vcpu-ubuntu-2204
+      tech_stack:
+        description: "Technology stack (go, nodejs, python, etc)"
+        required: false
+        type: string
+        default: go
+      project_id:
+        description: "GitHub project ID for issue tracking"
+        required: false
+        type: string
+      project_owner:
+        description: "GitHub project owner (user or org)"
+        required: false
+        type: string
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+      BLOOM_MCP_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+  repository-projects: write
+  organization-projects: write
+
+jobs:
+  implementation-plan:
+    name: Generate Plan
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+
+      - name: Setup Node.js (if needed)
+        if: inputs.tech_stack == 'nodejs'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Setup pnpm (if needed)
+        if: inputs.tech_stack == 'nodejs'
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Generate Implementation Plan
+        id: claude-plan
+        uses: anthropics/claude-code-action@beta
+        env:
+          BLOOM_MCP_TOKEN: ${{ secrets.BLOOM_MCP_TOKEN }}
+        with:
+          base_branch: ${{ inputs.base_branch }}
+          allowed_tools: ${{ inputs.allowed_tools }}
+          disallowed_tools: ${{ inputs.disallowed_tools }}
+          direct_prompt: |
+            Create a **CONCISE** implementation plan for this issue. Be precise but brief - avoid unnecessary elaboration.
+
+            **IMPORTANT:** 
+            - You are in read-only mode and cannot edit files. Focus on analyzing and planning only.
+            - Keep explanations minimal - focus on WHAT needs to be done, not WHY
+            - For simple issues (typos, small bugs, minor UI changes), keep the entire plan under 30 lines
+            - For complex features, be thorough but avoid repetition
+
+            **Current Labels:** ${{ join(github.event.issue.labels.*.name, ', ') }}
+            ${{ inputs.project_id && format('**Project ID:** {0}', inputs.project_id) || '' }}
+            ${{ inputs.project_owner && format('**Project Owner:** {0}', inputs.project_owner) || '' }}
+
+            ## Your Task:
+            1. **Check for duplicates:** Run `gh issue list --repo ${{ github.repository }} --state all --limit 100` to find similar issues. If found, apply "duplicate" label.
+            2. **Quick analysis:** Determine issue type and scope (don't over-analyze simple issues)
+            3. **Search smartly:** Only search codebase for affected files - skip if issue is obvious
+            4. **External research (if needed):** For new libraries/complex features, use WebSearch/WebFetch to get essential docs
+            5. **Create concise plan:** List only essential file changes
+            6. **Apply labels:** Use `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
+            ${{ inputs.project_id && format('7. **Add to project:** Add to project using `gh project item-add {0} --owner {1} --url https://github.com/{2}/issues/{3}`', inputs.project_id, inputs.project_owner || github.repository_owner, github.repository, github.event.issue.number) || '' }}
+
+            ## Required Output Format (BE CONCISE):
+
+            ### 🔍 Duplicate Check
+            **Status:** [No duplicates / Found: #123, #456]
+            
+            ### 📋 Issue Summary
+            **Type:** [Bug/Feature/Enhancement]
+            **Scope:** [1-line description]
+            **Key Files:** [List only the main files affected]
+
+            ### 📚 External Research (only if needed for new libraries/APIs)
+            [Brief summary of key findings - max 3-4 lines]
+
+            ### 📁 Implementation Changes
+
+            ```
+            # Use concise format: ACTION path/to/file - brief change description
+            CREATE modules/foo/service.go - new service for handling X
+            MODIFY modules/bar/controller.go:45 - fix validation logic
+            DELETE old/deprecated/file.go - no longer needed
+            ```
+
+            ### 🚀 Implementation Steps (numbered list, one line each)
+            1. Step one
+            2. Step two
+            3. Step three
+
+            ### ✅ Testing Required
+            - List only essential test files/scenarios (max 3-4 items)
+
+            ### 📌 Labels & Project
+            **Applied:** [bug, duplicate, etc.]
+            ${{ inputs.project_id && format('**Project:** {0} (P0/P1/P2)', inputs.project_id) || '' }}
+
+            ---
+            **Note:** For complex issues requiring detailed analysis, expand relevant sections as needed.
+            
+            ${{ inputs.prompt }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          mcp_config: ${{ inputs.mcp_config }}
