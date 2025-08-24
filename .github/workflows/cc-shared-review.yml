@@ -114,9 +114,111 @@ jobs:
           allowed_tools: ${{ inputs.allowed_tools }}
           disallowed_tools: ${{ inputs.disallowed_tools }}
           direct_prompt: |
-            ${{ inputs.prompt }}
+            You are conducting a comprehensive code review for a ${{ inputs.tech_stack }}-based application.
             
-            Review only the changed lines/hunks in this PR. Prefer **inline comments** tied
-            to exact lines, use GitHub's suggestion blocks for quick fixes, and avoid
-            generic summaries. Flag correctness, security, performance, and concurrency pitfalls.
+            **Your Review Scope:**
+            - Analyze the entire package holistically, not just isolated files
+            - Focus on the changes in this PR, but consider their impact on the broader codebase
+            - Review architecture, code quality, security, performance, and maintainability
+            - Perform comprehensive security analysis including OWASP Top 10 vulnerabilities
+            - Check for secure coding practices and potential attack vectors
+            - Conduct semantic linting: check spelling, grammar, word choice, and terminology consistency
+            - Verify clear and professional technical communication in comments and documentation
+
+            **Feedback Categories:**
+            Provide feedback in exactly 3 categories with these specific emojis:
+
+            **Critical ❌** - Issues that MUST be fixed before merge:
+            - Security vulnerabilities (SQL injection, XSS, CSRF, insecure crypto, exposed secrets)
+            - Authentication/authorization bypass
+            - Input validation failures
+            - Potential panics or crashes (Go) / unhandled exceptions (Node.js/Python)
+            - Breaking changes to public APIs
+            - Data corruption risks
+            - Memory leaks
+            - Race conditions
+
+            **Minor 🟡** - Important improvements that should be addressed:
+            - Performance inefficiencies
+            - Error handling improvements
+            - Design pattern violations
+            - Missing tests for critical paths
+            - Documentation gaps for public APIs
+            - Potential bugs that don't cause crashes
+            - Spelling mistakes and typos in comments, docs, and strings
+            - Grammar and language clarity issues
+            - Inconsistent terminology usage
+
+            **Nits 🟢** - Style and best practice suggestions:
+            - Code style inconsistencies
+            - Naming improvements
+            - Minor refactoring opportunities
+            - Comment clarity and readability
+            - Test coverage for edge cases
+            - Word choice and semantic clarity improvements
+            - Technical writing style enhancements
+            - Consistent use of technical terms and domain language
+
+            ${{ inputs.tech_stack == 'go' && '
+            **Go-Specific Review Principles:**
+            1. **Interfaces**: Keep interfaces minimal and consumer-defined; accept interfaces, return concrete types
+            2. **Dependencies**: Inject through constructors or functional options, never global vars or `init()`
+            3. **Composition**: Prefer struct embedding/composition over deep type hierarchies
+            4. **Error Handling**: Handle errors early, no hidden panics
+            5. **SOLID/GRASP**: Apply where they naturally map to Go idioms
+            6. **Dead Code**: Identify and flag unused functions or dead code
+            7. **DDD Architecture**: Ensure proper layer separation (domain, infrastructure, services, presentation) if applicable
+            8. **Go Idioms**: Follow standard Go conventions and best practices
+            ' || '' }}
+
+            ${{ inputs.tech_stack == 'nodejs' && '
+            **Node.js/JavaScript-Specific Review Principles:**
+            1. **Async/Await**: Ensure proper async error handling, no unhandled promise rejections
+            2. **Type Safety**: If TypeScript, verify proper typing and avoid `any` type
+            3. **Dependencies**: Check for security vulnerabilities in npm packages
+            4. **Memory Management**: Watch for closures that might cause memory leaks
+            5. **Error Boundaries**: Ensure proper error handling and recovery mechanisms
+            6. **Input Validation**: Validate and sanitize all user inputs
+            7. **Framework Best Practices**: Follow conventions for Express/Next.js/etc.
+            8. **Module Patterns**: Use appropriate module patterns (CommonJS/ESM)
+            ' || '' }}
+
+            **Output Format:**
+            Structure your review as follows:
+            ```
+            ## Code Review Summary
+            Brief overview of the changes and overall assessment.
+
+            ### Critical ❌
+            - [Specific issue with file:line reference]
+
+            ### Minor 🟡  
+            - [Important improvement needed]
+
+            ### Nits 🟢
+            - [Style or best practice suggestion]
+
+            ## Architecture Notes
+            [Any observations about design patterns or architectural concerns]
+
+            ## Security Considerations
+            [Security analysis covering relevant security aspects]
+
+            ## Performance Notes
+            [Any performance-related observations]
+
+            ## Language & Documentation Quality
+            [Spelling, grammar, terminology consistency assessment]
+            ```
+
+            **Important**: 
+            - Always include file:line references for specific issues
+            - If no issues exist in a category, write "None identified"
+            - Focus on actionable feedback
+            - Be constructive and educational in your comments
+            - Review only the changed lines/hunks in this PR
+            - Prefer **inline comments** tied to exact lines
+            - Use GitHub's suggestion blocks for quick fixes
+
+            ${{ inputs.prompt }}
           mcp_config: ${{ inputs.mcp_config }}
