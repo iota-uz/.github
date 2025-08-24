@@ -114,7 +114,16 @@ jobs:
           allowed_tools: ${{ inputs.allowed_tools }}
           disallowed_tools: ${{ inputs.disallowed_tools }}
           direct_prompt: |
-            You are conducting a comprehensive code review for a ${{ inputs.tech_stack }}-based application.
+            You are conducting a comprehensive code review for a **production-grade** ${{ inputs.tech_stack }}-based application.
+            
+            **Production-Grade Requirements:**
+            - Code must be ready for deployment to production environments
+            - Ensure robust error handling and recovery mechanisms
+            - Verify proper logging and monitoring capabilities
+            - Check for scalability and performance under load
+            - Validate security hardening and defense in depth
+            - Confirm backward compatibility and migration paths
+            - Ensure observability (metrics, traces, logs)
             
             **Your Review Scope:**
             - Analyze the entire package holistically, not just isolated files
@@ -132,11 +141,14 @@ jobs:
             - Security vulnerabilities (SQL injection, XSS, CSRF, insecure crypto, exposed secrets)
             - Authentication/authorization bypass
             - Input validation failures
-            - Potential panics or crashes (Go) / unhandled exceptions (Node.js/Python)
+            - Potential panics or crashes (Go) / unhandled exceptions (Node.js)
             - Breaking changes to public APIs
             - Data corruption risks
             - Memory leaks
             - Race conditions
+            - Missing critical error handling
+            - Production stability risks
+            - Data loss scenarios
 
             **Minor 🟡** - Important improvements that should be addressed:
             - Performance inefficiencies
@@ -145,6 +157,9 @@ jobs:
             - Missing tests for critical paths
             - Documentation gaps for public APIs
             - Potential bugs that don't cause crashes
+            - Insufficient logging for production debugging
+            - Missing retry logic for transient failures
+            - Inadequate input sanitization
             - Spelling mistakes and typos in comments, docs, and strings
             - Grammar and language clarity issues
             - Inconsistent terminology usage
@@ -160,27 +175,31 @@ jobs:
             - Consistent use of technical terms and domain language
 
             ${{ inputs.tech_stack == 'go' && '
-            **Go-Specific Review Principles:**
+            **Go-Specific Production Review Principles:**
             1. **Interfaces**: Keep interfaces minimal and consumer-defined; accept interfaces, return concrete types
             2. **Dependencies**: Inject through constructors or functional options, never global vars or `init()`
             3. **Composition**: Prefer struct embedding/composition over deep type hierarchies
-            4. **Error Handling**: Handle errors early, no hidden panics
-            5. **SOLID/GRASP**: Apply where they naturally map to Go idioms
-            6. **Dead Code**: Identify and flag unused functions or dead code
-            7. **DDD Architecture**: Ensure proper layer separation (domain, infrastructure, services, presentation) if applicable
-            8. **Go Idioms**: Follow standard Go conventions and best practices
+            4. **Error Handling**: Handle errors early, no hidden panics, use error wrapping for context
+            5. **Concurrency**: Check for goroutine leaks, proper context cancellation, safe concurrent access
+            6. **Resource Management**: Verify proper defer usage, connection pooling, graceful shutdown
+            7. **Dead Code**: Identify and flag unused functions or dead code
+            8. **DDD Architecture**: Ensure proper layer separation (domain, infrastructure, services, presentation) if applicable
+            9. **Go Idioms**: Follow standard Go conventions and best practices
+            10. **Production Readiness**: Ensure proper metrics, health checks, and graceful degradation
             ' || '' }}
 
             ${{ inputs.tech_stack == 'nodejs' && '
-            **Node.js/JavaScript-Specific Review Principles:**
+            **Node.js/JavaScript-Specific Production Review Principles:**
             1. **Async/Await**: Ensure proper async error handling, no unhandled promise rejections
             2. **Type Safety**: If TypeScript, verify proper typing and avoid `any` type
-            3. **Dependencies**: Check for security vulnerabilities in npm packages
-            4. **Memory Management**: Watch for closures that might cause memory leaks
+            3. **Dependencies**: Check for security vulnerabilities in npm packages, verify lock files
+            4. **Memory Management**: Watch for closures that might cause memory leaks, check heap usage patterns
             5. **Error Boundaries**: Ensure proper error handling and recovery mechanisms
-            6. **Input Validation**: Validate and sanitize all user inputs
+            6. **Input Validation**: Validate and sanitize all user inputs, prevent injection attacks
             7. **Framework Best Practices**: Follow conventions for Express/Next.js/etc.
             8. **Module Patterns**: Use appropriate module patterns (CommonJS/ESM)
+            9. **Event Loop**: Avoid blocking operations, ensure proper async patterns
+            10. **Production Readiness**: Verify clustering/PM2 config, health endpoints, graceful shutdown
             ' || '' }}
 
             **Output Format:**
