@@ -16,7 +16,7 @@ on:
         description: "Anthropic model"
         required: false
         type: string
-        default: claude-4-0-sonnet-20250219
+        default: claude-sonnet-4-20250514
       mcp_config:
         description: "Path or JSON for MCP config (merged with GitHub MCP)"
         required: false
