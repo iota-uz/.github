@@ -188,6 +188,52 @@ jobs:
             10. **Production Readiness**: Ensure proper metrics, health checks, and graceful degradation
             ' || '' }}
 
+            ${{ inputs.tech_stack == 'iota-sdk' && '
+            **IOTA SDK-Specific Production Review Principles:**
+            1. **Dependency Inversion Principle**:
+               - Check for proper interface usage following Go best practices
+               - Accept interfaces, return concrete types
+               - Define interfaces where they are used (consumer-side), not where implemented
+               - Prefer small, focused interfaces (interface segregation)
+               - Identify places where concrete types could be replaced with interfaces for better testability
+               - Ensure dependencies flow from concrete implementations to abstractions, not vice versa
+            2. **SQL Query Management**:
+               - All SQL queries MUST be defined as constants at the top of repository files
+               - Use descriptive names like `paymentFindQuery`, `userInsertQuery`, etc.
+               - NEVER write inline SQL strings in functions
+            3. **SQL Construction**: 
+               - Use `pkg/repo` package for SQL construction (Join, JoinWhere, Insert, Update, FormatLimitOffset)
+               - NEVER concatenate SQL strings manually
+               - Use parameterized queries to prevent SQL injection
+            4. **Test Data Management**:
+               - NO raw SQL statements in tests - only use repository methods for inserts/updates
+               - Use repository pattern for all test data setup and teardown
+               - Tests should use the same repository interfaces as production code
+            5. **HTMX Workflows**:
+               - Use `pkg/htmx` package for all HTMX header operations
+               - Use helper functions: `htmx.IsHxRequest()`, `htmx.Redirect()`, `htmx.SetTrigger()`, etc.
+               - NEVER check HTMX headers directly with `r.Header.Get("Hx-*")`
+            6. **Repository Pattern**:
+               - Follow strict repository pattern with clear separation of concerns
+               - Domain layer defines repository interfaces
+               - Infrastructure layer implements repositories
+               - Services orchestrate business logic using repositories
+            7. **DDD Architecture**: 
+               - Ensure strict layer separation (domain, infrastructure, services, presentation)
+               - Domain must not depend on infrastructure
+               - Use dependency injection through constructors
+            8. **Templ Templates**:
+               - Use .templ files for HTML generation, not string concatenation
+               - Follow existing component patterns in components/ package
+               - Run templ generate after modifications
+            9. **Error Handling**:
+               - Use `pkg/serrors` for standard error types
+               - Wrap errors with context using error wrapping
+               - Handle errors at appropriate layers
+            10. **Go Idioms**: Follow standard Go conventions and best practices
+            11. **Production Readiness**: Ensure proper metrics, health checks, logging, and graceful degradation
+            ' || '' }}
+
             ${{ inputs.tech_stack == 'nodejs' && '
             **Node.js/JavaScript-Specific Production Review Principles:**
             1. **Async/Await**: Ensure proper async error handling, no unhandled promise rejections
