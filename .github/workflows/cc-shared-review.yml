@@ -21,28 +21,7 @@ on:
         description: "Path or JSON for MCP config (merged with GitHub MCP)"
         required: false
         type: string
-        default: |
-          {
-            "mcpServers": {
-              "github": {
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-github@latest"],
-                "env": {
-                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ secrets.MCP_GITHUB_TOKEN }}",
-                  "GITHUB_TOOLSETS": "pull_requests,repos"
-                }
-              },
-              "context7": {
-                "type": "http",
-                "url": "https://mcp.context7.com/mcp",
-                "name": "context7"
-              },
-              "godoc-mcp": {
-                "command": "go",
-                "args": ["run", "github.com/mrjoshuak/godoc-mcp@latest"]
-              }
-            }
-          }
+        default: ""
       allowed_tools:
         description: "Allowed tools list (pipe-separated)"
         required: false
@@ -141,6 +120,7 @@ jobs:
           DEFAULT_WORKFLOW_TOKEN: ${{ github.token }}
           BLOOM_MCP_TOKEN: ${{ secrets.BLOOM_MCP_TOKEN }}
           GITHUB_MCP_TOKEN: ${{ secrets.MCP_GITHUB_TOKEN }}
+          MCP_CONFIG: ${{ inputs.mcp_config != '' && inputs.mcp_config || format('{"mcpServers":{"github":{"command":"npx","args":["-y","@modelcontextprotocol/server-github@latest"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":"{0}","GITHUB_TOOLSETS":"pull_requests,repos"}},"context7":{"type":"http","url":"https://mcp.context7.com/mcp","name":"context7"},"godoc-mcp":{"command":"go","args":["run","github.com/mrjoshuak/godoc-mcp@latest"]}}}', secrets.MCP_GITHUB_TOKEN) }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.MCP_GITHUB_TOKEN }}
@@ -149,7 +129,7 @@ jobs:
             --model ${{ inputs.model }}
             --allowedTools "${{ inputs.allowed_tools }}"
             --disallowedTools "${{ inputs.disallowed_tools }}"
-            --mcp-config '${{ inputs.mcp_config }}'
+            --mcp-config '${{ env.MCP_CONFIG }}'
           prompt: |
             /review
             
