@@ -31,6 +31,15 @@ on:
                   "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ github.token }}",
                   "GITHUB_TOOLSETS": "pull_requests,repos"
                 }
+              },
+              "context7": {
+                "type": "http",
+                "url": "https://mcp.context7.com/mcp",
+                "name": "context7"
+              },
+              "godoc-mcp": {
+                "command": "go",
+                "args": ["run", "github.com/mrjoshuak/godoc-mcp@latest"]
               }
             }
           }
@@ -135,6 +144,8 @@ jobs:
             --disallowedTools "${{ inputs.disallowed_tools }}"
             --mcp-config '${{ inputs.mcp_config }}'
           prompt: |
+            Please review this pull request.
+            
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
             
