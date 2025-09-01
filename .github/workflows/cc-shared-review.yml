@@ -64,7 +64,7 @@ on:
           Bash(gh pr comment:*)
           Bash(gh pr diff:*)
           Bash(gh pr view:*)
-          mcp__github_inline_comment__create_inline_comment
+          mcp__github__create_pull_request_review
           mcp__context7__resolve-library-id
           mcp__context7__get-library-docs
           mcp__godoc-mcp__get_doc
@@ -332,7 +332,7 @@ jobs:
             - Be constructive and educational in your comments
             - Review only the changed lines/hunks in this PR
             - Use `gh pr comment` for the main review summary
-            - Use `mcp__github_inline_comment__create_inline_comment` to add comments directly on specific lines
+            - Use `mcp__github__create_pull_request_review` to create inline review comments on specific lines
             - Prefer inline comments tied to exact lines rather than general PR comments
             - Use GitHub's suggestion blocks for quick fixes in inline comments
             - Only your GitHub comments will be seen - don't submit review as normal message
