@@ -9,7 +9,7 @@ on:
         type: string
         default: main
       prompt:
-        description: "Optional extra guidance for the review"
+        description: "Optional extra guidance for the review (defaults to /review)"
         required: false
         type: string
       model:
@@ -21,7 +21,19 @@ on:
         description: "Path or JSON for MCP config (merged with GitHub MCP)"
         required: false
         type: string
-        default: .github/claude/mcp.json
+        default: |
+          {
+            "mcpServers": {
+              "github": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-github@latest"],
+                "env": {
+                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ github.token }}",
+                  "GITHUB_TOOLSETS": "pull_requests,repos"
+                }
+              }
+            }
+          }
       allowed_tools:
         description: "Allowed tools list (pipe-separated)"
         required: false
@@ -41,6 +53,8 @@ on:
           Bash(gh issue:*)
           Bash(gh project:*)
           Bash(gh pr comment:*)
+          Bash(gh pr diff:*)
+          Bash(gh pr view:*)
           mcp__github_inline_comment__create_inline_comment
           mcp__context7__resolve-library-id
           mcp__context7__get-library-docs
@@ -105,7 +119,7 @@ jobs:
           version: 8
 
       - name: Claude inline PR review
-        uses: anthropics/claude-code-action@v1.0.3
+        uses: anthropics/claude-code-action@v1
         env:
           DEFAULT_WORKFLOW_TOKEN: ${{ github.token }}
           BLOOM_MCP_TOKEN: ${{ secrets.BLOOM_MCP_TOKEN }}
@@ -121,9 +135,10 @@ jobs:
             --disallowedTools "${{ inputs.disallowed_tools }}"
             --mcp-config '${{ inputs.mcp_config }}'
           prompt: |
-            /review
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
             
-            Additional context: You are reviewing a **production-grade** ${{ inputs.tech_stack }}-based application.
+            You are conducting a comprehensive code review for a **production-grade** ${{ inputs.tech_stack }}-based application.
             
             **Production-Grade Requirements:**
             - Code must be ready for deployment to production environments
@@ -183,42 +198,13 @@ jobs:
             - Technical writing style enhancements
             - Consistent use of technical terms and domain language
 
-            ${{ inputs.tech_stack == 'go' && '
-            **Go-Specific Production Review Principles:**
-            1. **Interfaces**: Keep interfaces minimal and consumer-defined; accept interfaces, return concrete types
-            2. **Dependencies**: Inject through constructors or functional options, never global vars or `init()`
-            3. **Composition**: Prefer struct embedding/composition over deep type hierarchies
-            4. **Error Handling**: 
-               - Handle errors early, use error wrapping for context
-               - **Panic Guidelines**:
-                 * Panics in setup/init code are ACCEPTABLE - for configuration issues, missing dependencies, etc.
-                 * Panics in request lifecycle (handlers, services during request) are NOT acceptable - flag as Critical ❌
-                 * Panics are OK to signal fundamentally broken application state that should never be reached
-                 * Examples of acceptable panics: missing required config, database connection failure at startup, template compilation errors
-                 * Examples of unacceptable panics: invalid user input, missing query parameters, failed API calls during request
-                 * Use error returns for all recoverable conditions in request handlers
-            5. **Concurrency**: Check for goroutine leaks, proper context cancellation, safe concurrent access
-            6. **Resource Management**: Verify proper defer usage, connection pooling, graceful shutdown
-            7. **Dead Code**: Identify and flag unused functions or dead code
-            8. **DDD Architecture**: Ensure proper layer separation (domain, infrastructure, services, presentation) if applicable
-            9. **Go Idioms**: Follow standard Go conventions and best practices
-            10. **Production Readiness**: Ensure proper metrics, health checks, and graceful degradation
-            ' || '' }}
-
             ${{ inputs.tech_stack == 'iota-sdk' && '
             **IOTA SDK-Specific Production Review Principles:**
-            1. **Dependency Inversion Principle**:
-               - Check for proper interface usage following Go best practices
-               - Accept interfaces, return concrete types
-               - Define interfaces where they are used (consumer-side), not where implemented
-               - Prefer small, focused interfaces (interface segregation)
-               - Identify places where concrete types could be replaced with interfaces for better testability
-               - Ensure dependencies flow from concrete implementations to abstractions, not vice versa
-            2. **SQL Query Management**:
+            1. **SQL Query Management**:
                - All SQL queries MUST be defined as constants at the top of repository files
                - Use descriptive names like `paymentFindQuery`, `userInsertQuery`, etc.
                - NEVER write inline SQL strings in functions
-            3. **SQL Construction**: 
+            2. **SQL Construction**: 
                - Use `pkg/repo` package for SQL construction (Join, JoinWhere, Insert, Update, FormatLimitOffset, Exists, BatchInsertQueryN)
                - NEVER concatenate SQL strings manually
                - Use parameterized queries to prevent SQL injection
@@ -226,11 +212,11 @@ jobs:
                - Verify usage of repo.FormatLimitOffset() for pagination instead of manual LIMIT/OFFSET
                - Ensure repo.JoinWhere() is used for WHERE clauses instead of manual concatenation
                - Use repo.Insert() and repo.Update() for generating INSERT/UPDATE queries
-            4. **Test Data Management**:
+            3. **Test Data Management**:
                - NO raw SQL statements in tests - only use repository methods for inserts/updates
                - Use repository pattern for all test data setup and teardown
                - Tests should use the same repository interfaces as production code
-            5. **HTMX Workflows**:
+            4. **HTMX Workflows**:
                - Use `pkg/htmx` package for ALL HTMX header operations - NO exceptions
                - Request header getters (MUST use these):
                  * `htmx.IsHxRequest(r)` instead of `r.Header.Get("Hx-Request")`
@@ -256,20 +242,20 @@ jobs:
                - NEVER check HTMX headers directly with `r.Header.Get("Hx-*")` - flag as Minor 🟡
                - NEVER set HTMX headers directly with `w.Header().Add("Hx-*")` - flag as Minor 🟡
                - Check for patterns like `len(r.Header.Get("Hx-Request")) > 0` - should use `htmx.IsHxRequest(r)`
-            6. **Repository Pattern**:
+            5. **Repository Pattern**:
                - Follow strict repository pattern with clear separation of concerns
                - Domain layer defines repository interfaces
                - Infrastructure layer implements repositories
                - Services orchestrate business logic using repositories
-            7. **DDD Architecture**: 
+            6. **DDD Architecture**: 
                - Ensure strict layer separation (domain, infrastructure, services, presentation)
                - Domain must not depend on infrastructure
                - Use dependency injection through constructors
-            8. **Templ Templates**:
+            7. **Templ Templates**:
                - Use .templ files for HTML generation, not string concatenation
                - Follow existing component patterns in components/ package
                - Run templ generate after modifications
-            9. **Error Handling**:
+            8. **Error Handling**:
                - Use `pkg/serrors` for standard error types
                - Wrap errors with context using error wrapping
                - Handle errors at appropriate layers
@@ -279,7 +265,7 @@ jobs:
                  * Acceptable: panic on template compilation failure, missing required config, DB connection at startup
                  * NOT acceptable: panic on invalid form data, missing route params, failed DB queries during request
                  * Use error returns and pkg/serrors for all request-time failures
-            10. **Go Idioms**: 
+            9. **Go Idioms**: 
                - Follow standard Go conventions and best practices
                - **Package Import Aliases**: Use flat case (no underscores, no hyphens) for import aliases
                  * Correct: `import sdkuseraggregate "github.com/iota-uz/iota-sdk/domain/user"`
@@ -292,8 +278,8 @@ jobs:
                  * Incorrect: `import user "github.com/iota-uz/iota-sdk/modules/core/domain/aggregates/user"`
                  * This helps distinguish SDK imports from local/standard library imports
                  * Flag missing `sdk` prefix as Nits 🟢
-            11. **Production Readiness**: Ensure proper metrics, health checks, logging, and graceful degradation
-            12. **Shared Utilities Usage**:
+            10. **Production Readiness**: Ensure proper metrics, health checks, logging, and graceful degradation
+            11. **Shared Utilities Usage**:
                - Use `pkg/shared` helper functions for common operations:
                  * `shared.ParseID()` and `shared.ParseUUID()` for parsing route parameters
                  * `shared.Redirect()` for handling redirects (supports both HTMX and regular HTTP)
@@ -302,23 +288,23 @@ jobs:
                  * `shared.Decoder` and `shared.Encoder` for form handling
                - NEVER parse IDs manually with `strconv.Atoi(mux.Vars(r)["id"])` - flag as Minor 🟡
                - Check for manual redirect logic instead of using `shared.Redirect()`
-            13. **Repository Filters**:
+            12. **Repository Filters**:
                - Use `pkg/repo` filter types (Eq, NotEq, Gt, Gte, Lt, Lte, In, NotIn, Like, ILike, Between, Or, And)
                - Use `FieldFilter` and `SortBy` types for query building
                - NEVER build filter conditions manually - use the provided filter types
                - Ensure proper usage of filter.String() and filter.Value() methods
-            14. **Logging Requirements**:
+            13. **Logging Requirements**:
                - Controllers MUST accept `logger *logrus.Entry` as a parameter when using `di.H`
                - ALWAYS log errors before returning HTTP error responses - flag missing logs as Minor 🟡
                - Use appropriate log levels: Error for failures, Warn for recoverable issues, Info for important events
                - Include context in error logs: `logger.Errorf("Failed to retrieve user: %v", err)`
                - Never ignore errors silently - either handle, log, or propagate
-            15. **Dependency Injection in Controllers**:
+            14. **Dependency Injection in Controllers**:
                - Use `di.H` wrapper for all controller handlers that need dependencies
                - Controller methods should accept dependencies as parameters (logger, services, etc.)
                - Example: `router.HandleFunc("/path", di.H(c.Handler)).Methods(http.MethodGet)`
                - Never use global variables or singletons for dependencies
-            16. **Form and Query Validation**:
+            15. **Form and Query Validation**:
                - Use `composables.UseForm()` for parsing and validating form data
                - Use `composables.UseQuery()` for parsing query parameters
                - NEVER parse forms manually with `r.ParseForm()` followed by manual field access
@@ -328,56 +314,16 @@ jobs:
                - Use other composables helpers: `UseUser()`, `UseTenantID()`, `UsePageCtx()`, `UseLogger()`
             ' || '' }}
 
-            ${{ inputs.tech_stack == 'nodejs' && '
-            **Node.js/JavaScript-Specific Production Review Principles:**
-            1. **Async/Await**: Ensure proper async error handling, no unhandled promise rejections
-            2. **Type Safety**: If TypeScript, verify proper typing and avoid `any` type
-            3. **Dependencies**: Check for security vulnerabilities in npm packages, verify lock files
-            4. **Memory Management**: Watch for closures that might cause memory leaks, check heap usage patterns
-            5. **Error Boundaries**: Ensure proper error handling and recovery mechanisms
-            6. **Input Validation**: Validate and sanitize all user inputs, prevent injection attacks
-            7. **Framework Best Practices**: Follow conventions for Express/Next.js/etc.
-            8. **Module Patterns**: Use appropriate module patterns (CommonJS/ESM)
-            9. **Event Loop**: Avoid blocking operations, ensure proper async patterns
-            10. **Production Readiness**: Verify clustering/PM2 config, health endpoints, graceful shutdown
-            ' || '' }}
-
-            **Output Format:**
-            Structure your review as follows:
-            ```
-            ## Code Review Summary
-            Brief overview of the changes and overall assessment.
-
-            ### Critical ❌
-            - [Specific issue with file:line reference]
-
-            ### Minor 🟡  
-            - [Important improvement needed]
-
-            ### Nits 🟢
-            - [Style or best practice suggestion]
-
-            ## Architecture Notes
-            [Any observations about design patterns or architectural concerns]
-
-            ## Security Considerations
-            [Security analysis covering relevant security aspects]
-
-            ## Performance Notes
-            [Any performance-related observations]
-
-            ## Language & Documentation Quality
-            [Spelling, grammar, terminology consistency assessment]
-            ```
-
-            **Important**: 
+            **Important Instructions:**
             - Always include file:line references for specific issues
             - If no issues exist in a category, write "None identified"
             - Focus on actionable feedback
             - Be constructive and educational in your comments
             - Review only the changed lines/hunks in this PR
-            - **Use inline comments**: Use `mcp__github_inline_comment__create_inline_comment` to add comments directly on specific lines
-            - Prefer **inline comments** tied to exact lines rather than general PR comments
+            - Use `gh pr comment` for the main review summary
+            - Use `mcp__github_inline_comment__create_inline_comment` to add comments directly on specific lines
+            - Prefer inline comments tied to exact lines rather than general PR comments
             - Use GitHub's suggestion blocks for quick fixes in inline comments
-
+            - Only your GitHub comments will be seen - don't submit review as normal message
+            
             ${{ inputs.prompt }}
