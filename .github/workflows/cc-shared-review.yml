@@ -374,4 +374,3 @@ jobs:
             - Use GitHub's suggestion blocks for quick fixes
 
             ${{ inputs.prompt }}
-          mcp_config: ${{ inputs.mcp_config }}
