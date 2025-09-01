@@ -121,7 +121,9 @@ jobs:
             --disallowedTools "${{ inputs.disallowed_tools }}"
             --mcp-config '${{ inputs.mcp_config }}'
           prompt: |
-            You are conducting a comprehensive code review for a **production-grade** ${{ inputs.tech_stack }}-based application.
+            /review
+            
+            Additional context: You are reviewing a **production-grade** ${{ inputs.tech_stack }}-based application.
             
             **Production-Grade Requirements:**
             - Code must be ready for deployment to production environments
