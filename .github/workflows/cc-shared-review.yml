@@ -136,8 +136,6 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
           base_branch: ${{ inputs.base_branch }}
-          track_progress: true
-          use_sticky_comment: true
           claude_args: |
             --model ${{ inputs.model }}
             --allowedTools "${{ inputs.allowed_tools }}"
