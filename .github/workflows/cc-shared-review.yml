@@ -338,10 +338,11 @@ jobs:
             - Focus on actionable feedback
             - Be constructive and educational in your comments
             - Review only the changed lines/hunks in this PR
-            - Use `gh pr comment` for the main review summary
-            - Use `mcp__github__create_pull_request_review` to create inline review comments on specific lines
-            - Prefer inline comments tied to exact lines rather than general PR comments
-            - Use GitHub's suggestion blocks for quick fixes in inline comments
-            - Only your GitHub comments will be seen - don't submit review as normal message
+            - Use `mcp__github__create_pull_request_review` to submit a complete PR review that includes:
+              * A main review summary/body with overall feedback
+              * Inline comments on specific lines of code that need attention
+              * Suggestion blocks for quick fixes where appropriate
+            - Focus inline comments on specific file:line locations for actionable feedback
+            - Group all feedback into a single review submission rather than multiple comments
             
             ${{ inputs.prompt }}
