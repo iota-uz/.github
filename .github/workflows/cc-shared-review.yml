@@ -28,7 +28,7 @@ on:
                 "command": "npx",
                 "args": ["-y", "@modelcontextprotocol/server-github@latest"],
                 "env": {
-                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_MCP_TOKEN}",
+                  "GITHUB_PERSONAL_ACCESS_TOKEN": "${{ secrets.MCP_GITHUB_TOKEN }}",
                   "GITHUB_TOOLSETS": "pull_requests,repos"
                 }
               },
@@ -143,7 +143,7 @@ jobs:
           GITHUB_MCP_TOKEN: ${{ secrets.MCP_GITHUB_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.MCP_GITHUB_TOKEN }}
           base_branch: ${{ inputs.base_branch }}
           claude_args: |
             --model ${{ inputs.model }}
