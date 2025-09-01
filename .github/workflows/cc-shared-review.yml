@@ -179,7 +179,15 @@ jobs:
             1. **Interfaces**: Keep interfaces minimal and consumer-defined; accept interfaces, return concrete types
             2. **Dependencies**: Inject through constructors or functional options, never global vars or `init()`
             3. **Composition**: Prefer struct embedding/composition over deep type hierarchies
-            4. **Error Handling**: Handle errors early, no hidden panics, use error wrapping for context
+            4. **Error Handling**: 
+               - Handle errors early, use error wrapping for context
+               - **Panic Guidelines**:
+                 * Panics in setup/init code are ACCEPTABLE - for configuration issues, missing dependencies, etc.
+                 * Panics in request lifecycle (handlers, services during request) are NOT acceptable - flag as Critical ❌
+                 * Panics are OK to signal fundamentally broken application state that should never be reached
+                 * Examples of acceptable panics: missing required config, database connection failure at startup, template compilation errors
+                 * Examples of unacceptable panics: invalid user input, missing query parameters, failed API calls during request
+                 * Use error returns for all recoverable conditions in request handlers
             5. **Concurrency**: Check for goroutine leaks, proper context cancellation, safe concurrent access
             6. **Resource Management**: Verify proper defer usage, connection pooling, graceful shutdown
             7. **Dead Code**: Identify and flag unused functions or dead code
@@ -202,17 +210,43 @@ jobs:
                - Use descriptive names like `paymentFindQuery`, `userInsertQuery`, etc.
                - NEVER write inline SQL strings in functions
             3. **SQL Construction**: 
-               - Use `pkg/repo` package for SQL construction (Join, JoinWhere, Insert, Update, FormatLimitOffset)
+               - Use `pkg/repo` package for SQL construction (Join, JoinWhere, Insert, Update, FormatLimitOffset, Exists, BatchInsertQueryN)
                - NEVER concatenate SQL strings manually
                - Use parameterized queries to prevent SQL injection
+               - Check for manual string concatenation in SQL queries - flag as Critical ❌
+               - Verify usage of repo.FormatLimitOffset() for pagination instead of manual LIMIT/OFFSET
+               - Ensure repo.JoinWhere() is used for WHERE clauses instead of manual concatenation
+               - Use repo.Insert() and repo.Update() for generating INSERT/UPDATE queries
             4. **Test Data Management**:
                - NO raw SQL statements in tests - only use repository methods for inserts/updates
                - Use repository pattern for all test data setup and teardown
                - Tests should use the same repository interfaces as production code
             5. **HTMX Workflows**:
-               - Use `pkg/htmx` package for all HTMX header operations
-               - Use helper functions: `htmx.IsHxRequest()`, `htmx.Redirect()`, `htmx.SetTrigger()`, etc.
-               - NEVER check HTMX headers directly with `r.Header.Get("Hx-*")`
+               - Use `pkg/htmx` package for ALL HTMX header operations - NO exceptions
+               - Request header getters (MUST use these):
+                 * `htmx.IsHxRequest(r)` instead of `r.Header.Get("Hx-Request")`
+                 * `htmx.IsBoosted(r)` for checking boosted requests
+                 * `htmx.IsHistoryRestoreRequest(r)` for history restore checks
+                 * `htmx.Target(r)` to get target element ID
+                 * `htmx.CurrentUrl(r)` to get current browser URL
+                 * `htmx.Trigger(r)` to get triggered element ID
+                 * `htmx.TriggerName(r)` to get triggered element name
+                 * `htmx.PromptResponse(r)` to get hx-prompt response
+               - Response header setters (MUST use these):
+                 * `htmx.Redirect(w, path)` for redirects
+                 * `htmx.SetTrigger(w, event, detail)` for triggering client events
+                 * `htmx.Retarget(w, target)` to change target element
+                 * `htmx.Reselect(w, selector)` to specify swap selector
+                 * `htmx.Location(w, path, target)` for client-side navigation
+                 * `htmx.PushUrl(w, url)` to push URL to history
+                 * `htmx.ReplaceUrl(w, url)` to replace current URL
+                 * `htmx.Refresh(w)` for full page refresh
+                 * `htmx.Reswap(w, swapStyle)` to change swap behavior
+                 * `htmx.TriggerAfterSettle(w, event, detail)` for post-settle triggers
+                 * `htmx.TriggerAfterSwap(w, event, detail)` for post-swap triggers
+               - NEVER check HTMX headers directly with `r.Header.Get("Hx-*")` - flag as Minor 🟡
+               - NEVER set HTMX headers directly with `w.Header().Add("Hx-*")` - flag as Minor 🟡
+               - Check for patterns like `len(r.Header.Get("Hx-Request")) > 0` - should use `htmx.IsHxRequest(r)`
             6. **Repository Pattern**:
                - Follow strict repository pattern with clear separation of concerns
                - Domain layer defines repository interfaces
@@ -230,8 +264,47 @@ jobs:
                - Use `pkg/serrors` for standard error types
                - Wrap errors with context using error wrapping
                - Handle errors at appropriate layers
+               - **Panic Guidelines**:
+                 * Panics in setup/init/module registration are ACCEPTABLE
+                 * Panics in controllers, services, repositories during request handling - flag as Critical ❌
+                 * Acceptable: panic on template compilation failure, missing required config, DB connection at startup
+                 * NOT acceptable: panic on invalid form data, missing route params, failed DB queries during request
+                 * Use error returns and pkg/serrors for all request-time failures
             10. **Go Idioms**: Follow standard Go conventions and best practices
             11. **Production Readiness**: Ensure proper metrics, health checks, logging, and graceful degradation
+            12. **Shared Utilities Usage**:
+               - Use `pkg/shared` helper functions for common operations:
+                 * `shared.ParseID()` and `shared.ParseUUID()` for parsing route parameters
+                 * `shared.Redirect()` for handling redirects (supports both HTMX and regular HTTP)
+                 * `shared.SetFlash()` and `shared.SetFlashMap()` for flash messages
+                 * `shared.GetInitials()` for user initials
+                 * `shared.Decoder` and `shared.Encoder` for form handling
+               - NEVER parse IDs manually with `strconv.Atoi(mux.Vars(r)["id"])` - flag as Minor 🟡
+               - Check for manual redirect logic instead of using `shared.Redirect()`
+            13. **Repository Filters**:
+               - Use `pkg/repo` filter types (Eq, NotEq, Gt, Gte, Lt, Lte, In, NotIn, Like, ILike, Between, Or, And)
+               - Use `FieldFilter` and `SortBy` types for query building
+               - NEVER build filter conditions manually - use the provided filter types
+               - Ensure proper usage of filter.String() and filter.Value() methods
+            14. **Logging Requirements**:
+               - Controllers MUST accept `logger *logrus.Entry` as a parameter when using `di.H`
+               - ALWAYS log errors before returning HTTP error responses - flag missing logs as Minor 🟡
+               - Use appropriate log levels: Error for failures, Warn for recoverable issues, Info for important events
+               - Include context in error logs: `logger.Errorf("Failed to retrieve user: %v", err)`
+               - Never ignore errors silently - either handle, log, or propagate
+            15. **Dependency Injection in Controllers**:
+               - Use `di.H` wrapper for all controller handlers that need dependencies
+               - Controller methods should accept dependencies as parameters (logger, services, etc.)
+               - Example: `router.HandleFunc("/path", di.H(c.Handler)).Methods(http.MethodGet)`
+               - Never use global variables or singletons for dependencies
+            16. **Form and Query Validation**:
+               - Use `composables.UseForm()` for parsing and validating form data
+               - Use `composables.UseQuery()` for parsing query parameters
+               - NEVER parse forms manually with `r.ParseForm()` followed by manual field access
+               - Always validate inputs using the composables functions
+               - Example: `dto, err := composables.UseForm(&YourDTO{}, r)`
+               - Use `composables.UsePaginated()` for pagination parameters
+               - Use other composables helpers: `UseUser()`, `UseTenantID()`, `UsePageCtx()`, `UseLogger()`
             ' || '' }}
 
             ${{ inputs.tech_stack == 'nodejs' && '
