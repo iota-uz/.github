@@ -65,6 +65,12 @@ on:
           Bash(gh pr diff:*)
           Bash(gh pr view:*)
           mcp__github__create_pull_request_review
+          mcp__github__create_pending_pull_request_review
+          mcp__github__add_pull_request_review_comment_to_pending_review
+          mcp__github__submit_pending_pull_request_review
+          mcp__github__get_pull_request_files
+          mcp__github__get_pull_request_comments
+          mcp__github__get_pull_request_reviews
           mcp__context7__resolve-library-id
           mcp__context7__get-library-docs
           mcp__godoc-mcp__get_doc
@@ -149,10 +155,13 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
             
-            IMPORTANT: You MUST use the GitHub MCP tools to create a proper PR review:
-            - Use `mcp__github__create_pull_request_review` to submit your review with inline comments
-            - Create inline comments on specific lines that need attention
-            - Group related comments in a single review submission
+            IMPORTANT: You MUST use the GitHub MCP tools to create a proper PR review with inline comments:
+            - PREFERRED: Use the pending review workflow for multiple inline comments:
+              1. `mcp__github__create_pending_pull_request_review` to start the review
+              2. `mcp__github__add_pull_request_review_comment_to_pending_review` for each inline comment on specific lines
+              3. `mcp__github__submit_pending_pull_request_review` to submit the complete review
+            - ALTERNATIVE: Use `mcp__github__create_pull_request_review` with a comments array for single-shot submission
+            - Use `mcp__github__get_pull_request_files` to get file information for accurate line positioning
             
             You are conducting a comprehensive code review for a **production-grade** ${{ inputs.tech_stack }}-based application.
             
@@ -336,11 +345,8 @@ jobs:
             - Focus on actionable feedback
             - Be constructive and educational in your comments
             - Review only the changed lines/hunks in this PR
-            - Use `mcp__github__create_pull_request_review` to submit a complete PR review that includes:
-              * A main review summary/body with overall feedback
-              * Inline comments on specific lines of code that need attention
-              * Suggestion blocks for quick fixes where appropriate
-            - Focus inline comments on specific file:line locations for actionable feedback
-            - Group all feedback into a single review submission rather than multiple comments
+            - Create inline comments on specific file:line locations that need attention
+            - Use GitHub's suggestion blocks for quick fixes where appropriate
+            - Submit all feedback as a single comprehensive PR review
             
             ${{ inputs.prompt }}
