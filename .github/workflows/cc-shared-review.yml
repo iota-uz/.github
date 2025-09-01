@@ -270,7 +270,19 @@ jobs:
                  * Acceptable: panic on template compilation failure, missing required config, DB connection at startup
                  * NOT acceptable: panic on invalid form data, missing route params, failed DB queries during request
                  * Use error returns and pkg/serrors for all request-time failures
-            10. **Go Idioms**: Follow standard Go conventions and best practices
+            10. **Go Idioms**: 
+               - Follow standard Go conventions and best practices
+               - **Package Import Aliases**: Use flat case (no underscores, no hyphens) for import aliases
+                 * Correct: `import sdkuseraggregate "github.com/iota-uz/iota-sdk/domain/user"`
+                 * Correct: `import sdkmoneyaccount "github.com/iota-uz/iota-sdk/modules/finance/domain/aggregates/money_account"`
+                 * Incorrect: `import user_aggregate`, `import user-aggregate`, `import UserAggregate`
+                 * Flag non-flat-case aliases as Nits 🟢
+               - **SDK Import Prefix**: All iota-sdk imports should be prefixed with `sdk` when aliased
+                 * Correct: `import sdkuser "github.com/iota-uz/iota-sdk/modules/core/domain/aggregates/user"`
+                 * Correct: `import sdkservices "github.com/iota-uz/iota-sdk/modules/finance/services"`
+                 * Incorrect: `import user "github.com/iota-uz/iota-sdk/modules/core/domain/aggregates/user"`
+                 * This helps distinguish SDK imports from local/standard library imports
+                 * Flag missing `sdk` prefix as Nits 🟢
             11. **Production Readiness**: Ensure proper metrics, health checks, logging, and graceful degradation
             12. **Shared Utilities Usage**:
                - Use `pkg/shared` helper functions for common operations:
