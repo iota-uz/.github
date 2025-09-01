@@ -107,13 +107,16 @@ jobs:
           DEFAULT_WORKFLOW_TOKEN: ${{ github.token }}
           BLOOM_MCP_TOKEN: ${{ secrets.BLOOM_MCP_TOKEN }}
         with:
-          mode: experimental-review
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: ${{ inputs.model }}
+          github_token: ${{ github.token }}
           base_branch: ${{ inputs.base_branch }}
+          model: ${{ inputs.model }}
           allowed_tools: ${{ inputs.allowed_tools }}
           disallowed_tools: ${{ inputs.disallowed_tools }}
-          direct_prompt: |
+          mcp_config: ${{ inputs.mcp_config }}
+          track_progress: true
+          use_sticky_comment: true
+          prompt: |
             You are conducting a comprehensive code review for a **production-grade** ${{ inputs.tech_stack }}-based application.
             
             **Production-Grade Requirements:**
