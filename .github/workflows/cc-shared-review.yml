@@ -102,7 +102,7 @@ jobs:
           version: 8
 
       - name: Claude inline PR review
-        uses: anthropics/claude-code-action@main
+        uses: anthropics/claude-code-action@v1.0.3
         env:
           DEFAULT_WORKFLOW_TOKEN: ${{ github.token }}
           BLOOM_MCP_TOKEN: ${{ secrets.BLOOM_MCP_TOKEN }}
@@ -110,12 +110,13 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
           base_branch: ${{ inputs.base_branch }}
-          model: ${{ inputs.model }}
-          allowed_tools: ${{ inputs.allowed_tools }}
-          disallowed_tools: ${{ inputs.disallowed_tools }}
-          mcp_config: ${{ inputs.mcp_config }}
           track_progress: true
           use_sticky_comment: true
+          claude_args: |
+            --model ${{ inputs.model }}
+            --allowedTools "${{ inputs.allowed_tools }}"
+            --disallowedTools "${{ inputs.disallowed_tools }}"
+            --mcp-config '${{ inputs.mcp_config }}'
           prompt: |
             You are conducting a comprehensive code review for a **production-grade** ${{ inputs.tech_stack }}-based application.
             
