@@ -40,6 +40,8 @@ on:
           Bash(gh label:*)
           Bash(gh issue:*)
           Bash(gh project:*)
+          Bash(gh pr comment:*)
+          mcp__github_inline_comment__create_inline_comment
           mcp__context7__resolve-library-id
           mcp__context7__get-library-docs
           mcp__godoc-mcp__get_doc
@@ -371,7 +373,8 @@ jobs:
             - Focus on actionable feedback
             - Be constructive and educational in your comments
             - Review only the changed lines/hunks in this PR
-            - Prefer **inline comments** tied to exact lines
-            - Use GitHub's suggestion blocks for quick fixes
+            - **Use inline comments**: Use `mcp__github_inline_comment__create_inline_comment` to add comments directly on specific lines
+            - Prefer **inline comments** tied to exact lines rather than general PR comments
+            - Use GitHub's suggestion blocks for quick fixes in inline comments
 
             ${{ inputs.prompt }}
