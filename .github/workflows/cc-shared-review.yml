@@ -97,6 +97,8 @@ on:
     secrets:
       ANTHROPIC_API_KEY:
         required: true
+      MCP_GITHUB_TOKEN:
+        required: true
       BLOOM_MCP_TOKEN:
         required: false
 
@@ -138,7 +140,7 @@ jobs:
         env:
           DEFAULT_WORKFLOW_TOKEN: ${{ github.token }}
           BLOOM_MCP_TOKEN: ${{ secrets.BLOOM_MCP_TOKEN }}
-          GITHUB_MCP_TOKEN: ${{ github.token }}
+          GITHUB_MCP_TOKEN: ${{ secrets.MCP_GITHUB_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
