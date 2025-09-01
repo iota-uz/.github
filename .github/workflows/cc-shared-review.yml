@@ -144,10 +144,17 @@ jobs:
             --disallowedTools "${{ inputs.disallowed_tools }}"
             --mcp-config '${{ inputs.mcp_config }}'
           prompt: |
-            Please review this pull request.
+            /review
+            
+            Create a comprehensive pull request review with inline comments on specific code lines.
             
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
+            
+            IMPORTANT: You MUST use the GitHub MCP tools to create a proper PR review:
+            - Use `mcp__github__create_pull_request_review` to submit your review with inline comments
+            - Create inline comments on specific lines that need attention
+            - Group related comments in a single review submission
             
             You are conducting a comprehensive code review for a **production-grade** ${{ inputs.tech_stack }}-based application.
             
